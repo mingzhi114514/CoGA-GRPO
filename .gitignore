@@ -1,0 +1,64 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Notebook and editor artifacts
+.ipynb_checkpoints/
+.idea/
+.vscode/
+*.swp
+
+# Local backup files created during experiments
+*.bak
+*.bak-*
+*.codex-bak*
+*~
+
+# Models, adapters, checkpoints and generated outputs
+models/
+models_human/
+output/
+outputs/
+checkpoint*/
+checkpoints/
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+
+# Datasets and media are not distributed through Git
+data_config/*.json
+datasets/
+benchmarks/
+videos/
+data/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.wav
+*.flac
+
+# Evaluation/training runtime artifacts
+eval_results/
+eval_logs/
+logs/
+wandb/
+*.log
+
+# Private machine-specific execution notes
+pilot.md
+pingce1.md
+E2_INTENTBENCH_EVAL.md
+
+# Credentials and local environment files
+.env
+.env.*
+!.env.example
+*credentials*
+*secret*

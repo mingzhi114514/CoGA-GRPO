@@ -1,0 +1,20 @@
+name: Release checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile Python sources
+        run: python -m compileall -q src eval tools tests
+      - name: Run structural tests
+        run: python tests/test_release_structure.py
+      - name: Check public-release contents
+        run: python tools/check_release.py

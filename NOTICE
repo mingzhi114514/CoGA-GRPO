@@ -1,0 +1,9 @@
+This repository contains modifications and extensions to Multimodal Open R1:
+https://github.com/EvolvingLMMs-Lab/open-r1-multimodal
+
+Multimodal Open R1 is a fork of Hugging Face Open R1:
+https://github.com/huggingface/open-r1
+
+Upstream source files retain their original copyright and Apache-2.0
+license headers. New training, allocation, evaluation, and reproducibility
+changes are distributed under the same Apache License, Version 2.0.
