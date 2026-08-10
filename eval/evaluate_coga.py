@@ -12,6 +12,7 @@ import torch
 import torch.nn.functional as F
 import itertools
 import random
+import gc
 
 import argparse
 from typing import Optional
@@ -24,6 +25,19 @@ from torch.utils.data import DataLoader, Dataset
 import av
 
 logger = logging.getLogger(__name__)
+
+
+def _is_oom_error(error: BaseException) -> bool:
+    if isinstance(error, torch.cuda.OutOfMemoryError):
+        return True
+    message = str(error).lower()
+    return "out of memory" in message or "cuda error: memory allocation" in message
+
+
+def _recover_from_oom() -> None:
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def _sanitize_openmp_env() -> None:
@@ -957,6 +971,7 @@ def main(args):
         rets = []
         prompt_token_lens = []
         gen_token_lens = []
+        oom_skips = []
         done_questions = load_done_questions_from_log(getattr(args, "resume_log", None))
         if done_questions and torch.distributed.get_rank() == 0:
             print(f"[resume] loaded {len(done_questions)} done prompts from log: {args.resume_log}")
@@ -1003,7 +1018,24 @@ def main(args):
                 else:
                     text = text + prefill
             # print(text)
-            model_inputs = _processor_call_with_limits(text=text, audios=audios, images=images, videos=videos)
+            try:
+                model_inputs = _processor_call_with_limits(
+                    text=text,
+                    audios=audios,
+                    images=images,
+                    videos=videos,
+                )
+            except Exception as e:
+                if bool(getattr(args, "skip_oom", True)) and _is_oom_error(e):
+                    try:
+                        question = format_question_for_display(inputs[0]["raw"], dataset_name)
+                    except Exception:
+                        question = "<unknown>"
+                    oom_skips.append({"phase": "preprocess", "question": question})
+                    _recover_from_oom()
+                    print(f"[skip_oom] OOM during preprocessing; skipped. question={question!r}")
+                    continue
+                raise
 
             # VRAM control must happen inside `processor(...)` via `videos_kwargs` (so video_grid_thw,
             # pixel_values_videos, and input_ids stay aligned). Do not post-hoc edit video tensors alone.
@@ -1012,21 +1044,17 @@ def main(args):
             try:
                 model_inputs = model_inputs.to(model.device).to(model.dtype)
             except Exception as e:
-                msg = str(e)
-                if (
-                    bool(getattr(args, "skip_oom", True))
-                    and ("CUDA out of memory" in msg or "out of memory" in msg)
-                ):
-                    if torch.cuda.is_available():
-                        try:
-                            torch.cuda.empty_cache()
-                        except Exception:
-                            pass
+                if bool(getattr(args, "skip_oom", True)) and _is_oom_error(e):
                     if torch.distributed.get_rank() == 0:
                         try:
                             q0 = format_question_for_display(inputs[0]["raw"], dataset_name)
                         except Exception:
                             q0 = "<unknown>"
+                    else:
+                        q0 = "<hidden-on-worker>"
+                    oom_skips.append({"phase": "device_transfer", "question": q0})
+                    _recover_from_oom()
+                    if torch.distributed.get_rank() == 0:
                         print(f"[skip_oom] OOM while moving inputs; skipped. question={q0!r}")
                     continue
                 raise
@@ -1078,21 +1106,18 @@ def main(args):
                         gen_kw["do_sample"] = False
                     text_ids = model.generate(**gen_kw)
             except Exception as e:
-                msg = str(e)
-                if (
-                    bool(getattr(args, "skip_oom", True))
-                    and ("CUDA out of memory" in msg or "out of memory" in msg)
-                ):
-                    if torch.cuda.is_available():
-                        try:
-                            torch.cuda.empty_cache()
-                        except Exception:
-                            pass
+                if bool(getattr(args, "skip_oom", True)) and _is_oom_error(e):
                     if torch.distributed.get_rank() == 0:
                         try:
                             q0 = format_question_for_display(inputs[0]["raw"], dataset_name)
                         except Exception:
                             q0 = "<unknown>"
+                    else:
+                        q0 = "<hidden-on-worker>"
+                    oom_skips.append({"phase": "generation", "question": q0})
+                    del model_inputs
+                    _recover_from_oom()
+                    if torch.distributed.get_rank() == 0:
                         print(f"[skip_oom] OOM during generate(); skipped. question={q0!r}")
                     continue
                 raise
@@ -1170,11 +1195,13 @@ def main(args):
         merged_responses = [None for _ in range(world_size)]
         merged_prompt_token_lens = [None for _ in range(world_size)]
         merged_gen_token_lens = [None for _ in range(world_size)]
+        merged_oom_skips = [None for _ in range(world_size)]
         torch.distributed.all_gather_object(merged_gts, gts)
         torch.distributed.all_gather_object(merged_sources, sources)
         torch.distributed.all_gather_object(merged_responses, rets)
         torch.distributed.all_gather_object(merged_prompt_token_lens, prompt_token_lens)
         torch.distributed.all_gather_object(merged_gen_token_lens, gen_token_lens)
+        torch.distributed.all_gather_object(merged_oom_skips, oom_skips)
 
         merged_gts = [_ for _ in itertools.chain.from_iterable(merged_gts)]
         merged_sources = [_ for _ in itertools.chain.from_iterable(merged_sources)]
@@ -1186,6 +1213,9 @@ def main(args):
         ]
         merged_gen_token_lens = [
             _ for _ in itertools.chain.from_iterable(merged_gen_token_lens)
+        ]
+        merged_oom_skips = [
+            _ for _ in itertools.chain.from_iterable(merged_oom_skips)
         ]
 
 
@@ -1251,6 +1281,11 @@ def main(args):
                 final_acc["expected_samples"] = int(len(dataset))
                 final_acc["missing_samples"] = int(max(0, len(dataset) - n_out))
                 final_acc["complete"] = bool(n_out == len(dataset))
+            final_acc["num_samples"] = int(len(final_output))
+            final_acc["expected_samples"] = int(len(dataset))
+            final_acc["missing_samples"] = int(max(0, len(dataset) - len(final_output)))
+            final_acc["oom_skipped"] = int(len(merged_oom_skips))
+            final_acc["complete"] = bool(len(final_output) == len(dataset))
             # Average token stats (prompt and generated new tokens).
             try:
                 n = max(1, len(merged_gen_token_lens))
@@ -1277,6 +1312,7 @@ def main(args):
                             "final_acc": [final_acc],
                             "eval_config": eval_config,
                             "eval_config_sha256": eval_config_hash,
+                            "oom_skips": merged_oom_skips,
                         },
                         f,
                         indent=2,

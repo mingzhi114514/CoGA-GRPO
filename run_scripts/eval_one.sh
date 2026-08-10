@@ -55,8 +55,8 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
   --stop-after-first-answer \
   --truncate-at-first-answer \
   --qa-output \
-  --strict-completeness \
-  --no-skip-oom \
+  --no-strict-completeness \
+  --skip-oom \
   --no-skip-missing-video-samples \
   2>&1 | tee "$EVAL_OUTPUT_ROOT/logs/${DATASET}_${RUN_LABEL}.log"
 

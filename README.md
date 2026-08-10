@@ -112,7 +112,7 @@ bash run_scripts/eval_one.sh \
   ib
 ```
 
-Supported identifiers are `ib`, `daily`, and `world`. A reportable run must finish with `complete=true`, zero missing samples, the expected denominator, and a recorded `eval_config_sha256`. Compare models only when effective evaluation settings match.
+Supported identifiers are `ib`, `daily`, and `world`. CUDA OOM samples are skipped, recorded in the output `oom_skips` list, and included in `final_acc.oom_skipped`. Always report the evaluated and expected denominators; results with skipped samples are marked `complete=false`. Compare models only when effective evaluation settings match.
 
 Report strict accuracy and denominator, token mean/median/P90/standard deviation, lengths split by correctness, missing/malformed/no-EOS/OOM counts, paired confidence intervals, McNemar comparisons, seed, and code revision.
 

@@ -31,11 +31,11 @@ class ReleaseStructureTests(unittest.TestCase):
         )
         self.assertIn(expected, script)
 
-    def test_evaluation_wrapper_requires_complete_outputs(self) -> None:
+    def test_evaluation_wrapper_skips_oom_samples(self) -> None:
         script = (ROOT / "run_scripts" / "eval_one.sh").read_text(encoding="utf-8")
         self.assertIn("eval/evaluate_coga.py", script)
-        self.assertIn("--strict-completeness", script)
-        self.assertIn("--no-skip-oom", script)
+        self.assertIn("--no-strict-completeness", script)
+        self.assertIn("--skip-oom", script)
         self.assertIn("--no-skip-missing-video-samples", script)
         self.assertIn("--no-do-sample", script)
 
