@@ -25,8 +25,6 @@ For every prompt, the policy samples a complete GRPO response group. The trainer
 2. apply a small length penalty only to easy, correct responses;
 3. avoid rewarding incorrect responses for becoming longer.
 
-Core experiments use deterministic format and answer-accuracy rewards. Online LLM judging is not part of the controlled protocol. This release supports Qwen2.5-Omni checkpoints only.
-
 ## Repository structure
 
 ```text
@@ -51,7 +49,6 @@ src/open_r1/vlm_modules/            Qwen2.5-Omni adapter
 | Python | 3.12 |
 | PyTorch | 2.5.1 |
 | CUDA | 12.4 |
-| GPU | NVIDIA GPU with 48 GB memory |
 
 ## Installation
 
@@ -65,8 +62,6 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -e .
 ```
-
-The controlled launcher defaults to SDPA, so FlashAttention is not required.
 
 ## Private data
 
@@ -128,8 +123,6 @@ MASTER_PORT=17100 \
 bash run_scripts/run_e0_e6.sh E4 full 42
 ```
 
-Modes are `smoke` (5 steps), `pilot` (50 steps), and `full` (one epoch). Use different GPUs and ports for concurrent jobs.
-
 | Internal ID | Public method name | Dynamic KL | Input load | Safe length shaping | Purpose |
 |---|---|---:|---:|---:|---|
 | E0 | Standard GRPO | no | no | no | baseline |
@@ -153,27 +146,3 @@ bash run_scripts/eval_one.sh \
   output/controlled_ablation/e4_full_seed42 \
   ib
 ```
-
-Supported identifiers are `ib`, `daily`, and `world`. CUDA OOM samples are skipped, recorded in the output `oom_skips` list, and included in `final_acc.oom_skipped`. Always report the evaluated and expected denominators; results with skipped samples are marked `complete=false`. Compare models only when effective evaluation settings match.
-
-Report strict accuracy and denominator, token mean/median/P90/standard deviation, lengths split by correctness, missing/malformed/no-EOS/OOM counts, paired confidence intervals, McNemar comparisons, seed, and code revision.
-
-## Validation
-
-Run the lightweight release checks before opening a pull request:
-
-```bash
-python -m compileall -q src eval tools tests
-python tests/test_release_structure.py
-python tools/check_release.py
-```
-
-The checker rejects private server paths, credentials, datasets, model artifacts, legacy project naming, and non-English CJK text.
-
-## Limitations
-
-The current protocol targets explicit multiple-choice video reasoning with one multimodal backbone. Output-token reduction is not equivalent to end-to-end latency reduction because video encoding can dominate runtime. Audio adaptation is not claimed when audio input is disabled.
-
-## Citation
-
-The BibTeX entry will be added after the manuscript title, author list, and public paper identifier are finalized.
