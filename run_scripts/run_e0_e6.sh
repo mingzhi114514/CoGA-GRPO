@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage:
 #   BASE_MODEL=/path/to/model \
 #   CUDA_VISIBLE_DEVICES=0 \
-#   bash run_scripts/run_e0_e6.sh E4 full 42
+#   bash run_scripts/run_e0_e6.sh E3 full 42
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"

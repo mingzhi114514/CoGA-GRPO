@@ -25,19 +25,26 @@ class ReleaseStructureTests(unittest.TestCase):
 
     def test_full_method_switches_are_explicit(self) -> None:
         script = (ROOT / "run_scripts" / "run_e0_e6.sh").read_text(encoding="utf-8")
-        expected = (
-            "E4) USE_DYNAMIC_BETA=true; ENABLE_LENGTH_REWARD=true; "
-            "USE_INTRINSIC_DIFFICULTY=true ;;"
-        )
+        expected = "E3) USE_DYNAMIC_BETA=true; ENABLE_LENGTH_REWARD=true ;;"
         self.assertIn(expected, script)
 
-    def test_evaluation_wrapper_skips_oom_samples(self) -> None:
+    def test_evaluation_wrapper_requires_complete_results(self) -> None:
         script = (ROOT / "run_scripts" / "eval_one.sh").read_text(encoding="utf-8")
         self.assertIn("eval/evaluate_coga.py", script)
-        self.assertIn("--no-strict-completeness", script)
-        self.assertIn("--skip-oom", script)
+        self.assertIn("--strict-completeness", script)
+        self.assertIn("--no-skip-oom", script)
+        self.assertIn("--video-max-frames 4", script)
+        self.assertIn("--max-pixels 75264", script)
+        self.assertIn("--min-pixels 50176", script)
         self.assertIn("--no-skip-missing-video-samples", script)
         self.assertIn("--no-do-sample", script)
+
+    def test_readme_reproduces_main_method_without_identity_links(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("run_e0_e6.sh E3 full 42", readme)
+        self.assertIn("e3_full_seed42", readme)
+        self.assertNotIn("run_e0_e6.sh E4 full 42", readme)
+        self.assertNotIn("CoGA-GRPO/actions/workflows", readme)
 
     def test_private_training_json_is_not_tracked_by_default(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")

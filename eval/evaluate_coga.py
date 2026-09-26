@@ -1336,8 +1336,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--strict-completeness",
         action=argparse.BooleanOptionalAction,
-        default=False,
-        help="Fail after writing diagnostics when output count differs from the dataset size.",
+        default=True,
+        help="Fail after writing diagnostics when output count differs from the dataset size (enabled by default).",
     )
     parser.add_argument(
         "--model-path",
@@ -1361,8 +1361,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--skip-oom",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="If enabled (default), skip samples that raise CUDA OOM during input move or generate(), instead of aborting eval.",
+        default=False,
+        help="If enabled, skip samples that raise CUDA OOM during input move or generate(); disabled by default for complete benchmark evaluation.",
     )
     parser.add_argument(
         "--skip-missing-video-samples",

@@ -5,7 +5,7 @@ set -euo pipefail
 # Usage:
 #   BASE_MODEL=/path/to/model DATA_ROOT=/path/to/benchmarks \
 #   CUDA_VISIBLE_DEVICES=0 \
-#   bash run_scripts/eval_one.sh full_shared_allocation /path/to/adapter ib
+#   bash run_scripts/eval_one.sh coga_grpo /path/to/e3_adapter ib
 
 RUN_LABEL="${1:?run label required}"
 ADAPTER_PATH="${2:?adapter path required}"
@@ -47,16 +47,16 @@ export OMP_NUM_THREADS="${OMP_NUM_THREADS:-4}"
   --repetition-penalty 1.0 \
   --max-input-tokens 0 \
   --assistant-prefill "$GRPO_ASSISTANT_PREFILL" \
-  --video-max-frames 6 \
+  --video-max-frames 4 \
   --video-reader-fps 1.0 \
-  --max-pixels 100352 \
-  --min-pixels 75264 \
+  --max-pixels 75264 \
+  --min-pixels 50176 \
   --num-workers 0 \
   --stop-after-first-answer \
   --truncate-at-first-answer \
   --qa-output \
-  --no-strict-completeness \
-  --skip-oom \
+  --strict-completeness \
+  --no-skip-oom \
   --no-skip-missing-video-samples \
   2>&1 | tee "$EVAL_OUTPUT_ROOT/logs/${DATASET}_${RUN_LABEL}.log"
 

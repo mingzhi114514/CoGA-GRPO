@@ -1425,8 +1425,7 @@ class VLMGRPOTrainer(Trainer):
         easy_correct = (~is_hard_sample) & (correct_indicator > 0.5)
         hard_correct = is_hard_sample & (correct_indicator > 0.5)
         hard_incorrect = is_hard_sample & (correct_indicator < 0.5)
-        # Length shaping: reward shorter completions whenever the answer is correct (easy or hard).
-        # Previously only easy_correct received this; hard_correct was always 0 — bad when most groups are "hard".
+        # Length shaping applies only to eligible easy, correct responses; hard-correct responses are protected.
         len_reward[easy_correct] = (
             1.0 - completion_token_len[easy_correct] / avg_len_per_completion[easy_correct]
         )
