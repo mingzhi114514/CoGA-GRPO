@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="CoGA-GRPO uses rollout correctness to coordinate KL regularization and response-length shaping for video reasoning.">
-  <meta name="theme-color" content="#f6f5ef">
+  <meta name="theme-color" content="#f4f8ff">
   <title>CoGA-GRPO · Correctness-Gated Reward Shaping</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,9 +12,10 @@
   <a href="#main" class="skip">Skip to content</a>
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="wordmark" href="#main"><span aria-hidden="true"></span>CoGA-GRPO</a>
+      <a class="wordmark" href="#main">CoGA-GRPO</a>
       <nav aria-label="Sections">
-        <a href="#method">Method</a>
+        <a href="#abstract">Abstract</a>
+        <a href="#method">Pipeline</a>
         <a href="#results">Results</a>
         <a href="#example">Example</a>
       </nav>
@@ -22,32 +23,32 @@
     </div>
   </header>
   <main id="main">
-    <section class="hero wrap" aria-labelledby="title">
-      <div>
-        <p class="eyebrow">CoGA-GRPO</p>
-        <h1 id="title">Correctness-Gated Reward Shaping for Video Reasoning</h1>
-        <p class="lede">Use rollout correctness to coordinate KL regularization and response-length shaping in group relative policy optimization.</p>
+    <section class="hero" aria-labelledby="title">
+      <div class="wrap hero-inner">
+        <h1 id="title"><span>CoGA-GRPO</span><small>Correctness-Gated Reward Shaping<br class="desktop-break"> for Video Reasoning</small></h1>
+        <p class="authors">Anonymous authors</p>
         <div class="actions">
-          <a class="button primary" href="#method">Explore the method <span aria-hidden="true">↓</span></a>
-          <a class="button secondary" href="https://github.com/mingzhi114514/CoGA-GRPO">View source code <span aria-hidden="true">↗</span></a>
+          <a class="button primary" href="https://github.com/mingzhi114514/CoGA-GRPO">View code <span aria-hidden="true">↗</span></a>
+          <a class="button secondary" href="#results">Explore results <span aria-hidden="true">↓</span></a>
         </div>
       </div>
-      <aside class="hero-results" aria-label="Headline IntentBench results">
-        <h2>IntentBench</h2>
-        <p>2,689 questions · matched evaluation</p>
-        <div class="headline-stat"><strong>+1.04</strong><span>pp accuracy</span></div>
-        <div class="headline-stat"><strong>−3.84</strong><span>generated tokens<br>per response</span></div>
-        <p>Relative to Standard GRPO</p>
-      </aside>
     </section>
 
-    <section class="section wrap overview" aria-labelledby="overview-title">
-      <h2 id="overview-title">Overview</h2>
-      <p>CoGA-GRPO uses one allocation score derived from sampled answers to adjust the strength of KL regularization and determine which groups are eligible for length shaping. Within eligible groups, a bounded reward adjustment favors shorter correct responses that pass an answer-score margin. The matched IntentBench comparison initializes both variants from the same reproduced Qwen2.5-Omni-7B structured-reasoning checkpoint.</p>
+    <figure class="teaser wrap">
+      <a class="figure-frame" href="assets/motivation.webp"><img src="assets/motivation.webp" width="1360" height="865" alt="Two generated answers to the same video question, contrasting reasoning grounded in the conversation with an unsupported interpretation."></a>
+      <figcaption>Two responses to the same video question illustrate how explanations can differ in the evidence they use to support an answer.</figcaption>
+    </figure>
+
+    <section class="abstract-band" id="abstract" aria-labelledby="abstract-title">
+      <div class="section wrap abstract-inner">
+        <h2 id="abstract-title">Abstract</h2>
+        <p>Video reasoning requires balancing answer accuracy and generation length. CoGA-GRPO extends group relative policy optimization with a shared score derived from rollout correctness. This score adapts KL regularization and determines which groups are eligible for length shaping. Within eligible groups, a bounded reward adjustment favors shorter correct responses that satisfy an answer-score margin.</p>
+        <p>We initialize CoGA-GRPO and Standard GRPO from the same reproduced Qwen2.5-Omni-7B structured-reasoning checkpoint. On 2,689 IntentBench questions under matched settings, CoGA-GRPO improves accuracy by 1.04 percentage points and reduces mean generation length by 3.84 tokens. It achieves 59.82% accuracy on Daily-Omni and 47.9% on WorldSense.</p>
+      </div>
     </section>
 
     <section class="section wrap" id="method" aria-labelledby="method-title">
-      <div class="section-heading"><h2 id="method-title">Method</h2><span>Training workflow</span></div>
+      <div class="section-heading"><h2 id="method-title">Pipeline</h2></div>
       <figure class="figure-frame">
         <a href="assets/architecture.webp"><img src="assets/architecture.webp" alt="CoGA-GRPO training architecture. A rollout-based score, optionally mixed with input load, controls adaptive KL regularization and sequence length shaping."></a>
         <figcaption>Both controllers use the same allocation score. The main configuration derives it solely from rollout correctness.</figcaption>
@@ -61,7 +62,7 @@
 
     <section class="results-band" id="results" aria-labelledby="results-title">
       <div class="section wrap">
-        <div class="section-heading"><h2 id="results-title">Results</h2><span>Video question answering</span></div>
+        <div class="section-heading"><h2 id="results-title">Results</h2></div>
         <div class="results-summary">
           <div class="table-card">
             <h3>Matched IntentBench comparison</h3>
@@ -88,13 +89,13 @@
     </section>
 
     <section class="section wrap" id="example" aria-labelledby="example-title">
-      <div class="section-heading"><h2 id="example-title">Qualitative example</h2><span>IntentBench · Emotion</span></div>
+      <div class="section-heading"><h2 id="example-title">Qualitative example</h2><p>IntentBench · Emotion</p></div>
       <div class="example-grid">
         <figure class="figure-frame"><a href="assets/emotion-example.webp"><img src="assets/emotion-example.webp" alt="An IntentBench question about how two men react to a McMansion remark, with CoGA-GRPO selecting option A." loading="lazy"></a></figure>
         <div class="example-copy"><h3>Interpreting a reaction</h3><p>CoGA-GRPO selects option A, matching the reference answer. Its explanation cites the man in glasses smiling and nodding, his appreciative tone, and the audience’s cheers and applause.</p><p>These cues more directly support the interpretation of the man in glasses than the emotional state of the other speaker, although the question asks about both men.</p></div>
       </div>
     </section>
   </main>
-  <footer class="wrap footer"><span>CoGA-GRPO</span><a href="https://github.com/mingzhi114514/CoGA-GRPO">Code and evaluation scripts ↗</a></footer>
+  <footer class="site-footer"><div class="wrap footer"><span>CoGA-GRPO</span><a href="https://github.com/mingzhi114514/CoGA-GRPO">Code and evaluation scripts ↗</a></div></footer>
 </body>
 </html>
