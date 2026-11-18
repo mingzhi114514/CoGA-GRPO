@@ -1,9 +1,0 @@
-# Copy or link private media under ./data, or edit data_root for your machine.
-# Dataset JSON files are intentionally not distributed by this repository.
-datasets:
-  - json_path: data_config/emer_rewrite.json
-    data_root: data
-    sampling_strategy: first:50%
-  - json_path: data_config/social_iq_v2_rewrite.json
-    data_root: data
-    sampling_strategy: first:50%
