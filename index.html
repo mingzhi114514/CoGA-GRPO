@@ -52,23 +52,7 @@
       <div class="section-heading"><h2 id="method-title">How CoGA-GRPO works</h2><p>One correctness-derived signal coordinates two training decisions.</p></div>
       <div class="reading-copy section-intro"><p>A fixed regularization weight treats every response group in the same way, even when the current policy succeeds much more often on some prompts than others. CoGA-GRPO recomputes an allocation score from each sampled group and uses it to adapt both regularization and eligibility for length shaping. The score reflects the policy’s observed performance on that prompt, which can change during training.</p></div>
       <figure class="figure-frame workflow-figure">
-        <div class="workflow" aria-label="CoGA-GRPO training workflow">
-          <div class="workflow-start">
-            <article><h3>Structured-reasoning initialization</h3><p>Supervised fine-tuning teaches context description, reasoning, and final-answer generation.</p></article>
-            <span class="flow-arrow" aria-hidden="true">↓</span>
-            <article><h3>Prompt and video input</h3><p>The model receives the question and available media. The reference answer is reserved for scoring.</p></article>
-            <span class="flow-arrow" aria-hidden="true">↓</span>
-            <article><h3>Six sampled responses</h3><p>Answer and format scores provide the base training reward for each completion.</p></article>
-            <span class="flow-arrow" aria-hidden="true">↓</span>
-            <article class="workflow-shared"><h3>Shared allocation score</h3><p>Group correctness determines the main score. An optional variant adds input processing load.</p></article>
-          </div>
-          <div class="workflow-branches">
-            <article><h3>Adaptive KL regularization</h3><p>Groups with lower observed correctness receive weaker regularization toward the frozen reference policy.</p></article>
-            <article><h3>Correctness-gated length shaping</h3><p>A recent-score window determines eligible groups. Correct responses must also pass an answer-score margin.</p></article>
-          </div>
-          <span class="flow-arrow" aria-hidden="true">↓</span>
-          <article class="workflow-update"><h3>Group-relative policy update</h3><p>Combine the base and length rewards, center them within the group, and update the trainable adapters.</p></article>
-        </div>
+        <a href="assets/architecture.webp"><img src="assets/architecture.webp" alt="Original CoGA-GRPO architecture from the paper, showing rollout scoring, adaptive KL regularization, length shaping and the group-relative policy update."></a>
         <figcaption><h3>From sampled answers to a coordinated policy update</h3><p>The workflow begins with a Qwen2.5-Omni-7B structured-reasoning checkpoint. During group-relative training, the model generates six completions for the same prompt. Their answer scores determine correctness indicators, which are summarized into a group allocation score before length shaping is added. The same score then controls the KL penalty weight and the group’s eligibility for a length adjustment.</p><p>For eligible correct responses that pass the score margin, a completion shorter than its group mean receives a positive adjustment, while a longer completion receives a negative adjustment. The adjustment is bounded, and incorrect responses receive no direct length term in the main method. Group centering can still change their relative training signal when other responses receive an adjustment. The reference policy is evaluated with the trainable adapters disabled.</p></figcaption>
       </figure>
       <div class="method-grid">
