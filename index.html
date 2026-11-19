@@ -35,11 +35,6 @@
       </div>
     </section>
 
-    <figure class="teaser wrap" id="motivation">
-      <a class="figure-frame" href="assets/motivation.webp"><img src="assets/motivation.webp" width="1360" height="865" alt="Two generated answers to the same video question, contrasting reasoning grounded in the conversation with an unsupported interpretation."></a>
-      <figcaption><h2>Why evidence matters when shortening responses</h2><p>This example asks why a woman laughs during a conversation. The response on the left connects her laughter to the exaggerated guesses made by the other speaker and selects option B. The response on the right turns the same interaction into a claim about her wanting others to speculate about her private life and selects option A.</p><p>The contrast illustrates the motivation for the paper. A response needs enough explanation to connect the observed interaction with an answer, while additional speculation can move the interpretation away from the evidence. CoGA-GRPO uses answer correctness to guide length incentives during training, with the aim of preserving useful reasoning as it encourages concise generation.</p></figcaption>
-    </figure>
-
     <section class="abstract-band" id="abstract" aria-labelledby="abstract-title">
       <div class="section wrap abstract-inner">
         <h2 id="abstract-title">Abstract</h2>
@@ -47,6 +42,11 @@
         <p>We initialize CoGA-GRPO and Standard GRPO from the same reproduced Qwen2.5-Omni-7B structured-reasoning checkpoint. On 2,689 IntentBench questions under matched settings, CoGA-GRPO improves accuracy by 1.04 percentage points and reduces mean generation length by 3.84 tokens. It achieves 59.82% accuracy on Daily-Omni and 47.9% on WorldSense.</p>
       </div>
     </section>
+
+    <figure class="teaser wrap" id="motivation">
+      <a class="figure-frame" href="assets/motivation.webp"><img src="assets/motivation.webp" width="1360" height="865" alt="Two generated answers to the same video question, contrasting reasoning grounded in the conversation with an unsupported interpretation."></a>
+      <figcaption><h2>Why evidence matters when shortening responses</h2><p>This example asks why a woman laughs during a conversation. The response on the left connects her laughter to the exaggerated guesses made by the other speaker and selects option B. The response on the right turns the same interaction into a claim about her wanting others to speculate about her private life and selects option A.</p><p>The contrast illustrates the motivation for the paper. A response needs enough explanation to connect the observed interaction with an answer, while additional speculation can move the interpretation away from the evidence. CoGA-GRPO uses answer correctness to guide length incentives during training, with the aim of preserving useful reasoning as it encourages concise generation.</p></figcaption>
+    </figure>
 
     <section class="section wrap" id="method" aria-labelledby="method-title">
       <div class="section-heading"><h2 id="method-title">How CoGA-GRPO works</h2><p>One correctness-derived signal coordinates two training decisions.</p></div>
