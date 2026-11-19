@@ -6,7 +6,7 @@
   <meta name="description" content="CoGA-GRPO uses rollout correctness to coordinate KL regularization and response-length shaping for video reasoning.">
   <meta name="theme-color" content="#f4f8ff">
   <title>CoGA-GRPO · Correctness-Gated Reward Shaping</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=paper-20261119">
 </head>
 <body>
   <a href="#main" class="skip">Skip to content</a>
@@ -15,7 +15,8 @@
       <a class="wordmark" href="#main">CoGA-GRPO</a>
       <nav aria-label="Sections">
         <a href="#abstract">Abstract</a>
-        <a href="#method">Pipeline</a>
+        <a href="#motivation">Motivation</a>
+        <a href="#method">Method</a>
         <a href="#results">Results</a>
         <a href="#example">Example</a>
       </nav>
@@ -26,7 +27,7 @@
     <section class="hero" aria-labelledby="title">
       <div class="wrap hero-inner">
         <h1 id="title"><span>CoGA-GRPO</span><small>Correctness-Gated Reward Shaping<br class="desktop-break"> for Video Reasoning</small></h1>
-        <p class="authors">Anonymous authors</p>
+        <p class="authors">Mingzhi Jiao, Jisheng Dang, et al.</p>
         <div class="actions">
           <a class="button primary" href="https://github.com/mingzhi114514/CoGA-GRPO">View code <span aria-hidden="true">↗</span></a>
           <a class="button secondary" href="#results">Explore results <span aria-hidden="true">↓</span></a>
@@ -34,9 +35,9 @@
       </div>
     </section>
 
-    <figure class="teaser wrap">
+    <figure class="teaser wrap" id="motivation">
       <a class="figure-frame" href="assets/motivation.webp"><img src="assets/motivation.webp" width="1360" height="865" alt="Two generated answers to the same video question, contrasting reasoning grounded in the conversation with an unsupported interpretation."></a>
-      <figcaption>Two responses to the same video question illustrate how explanations can differ in the evidence they use to support an answer.</figcaption>
+      <figcaption><h2>Why evidence matters when shortening responses</h2><p>This example asks why a woman laughs during a conversation. The response on the left connects her laughter to the exaggerated guesses made by the other speaker and selects option B. The response on the right turns the same interaction into a claim about her wanting others to speculate about her private life and selects option A.</p><p>The contrast illustrates the motivation for the paper. A response needs enough explanation to connect the observed interaction with an answer, while additional speculation can move the interpretation away from the evidence. CoGA-GRPO uses answer correctness to guide length incentives during training, with the aim of preserving useful reasoning as it encourages concise generation.</p></figcaption>
     </figure>
 
     <section class="abstract-band" id="abstract" aria-labelledby="abstract-title">
@@ -48,21 +49,39 @@
     </section>
 
     <section class="section wrap" id="method" aria-labelledby="method-title">
-      <div class="section-heading"><h2 id="method-title">Pipeline</h2></div>
-      <figure class="figure-frame">
-        <a href="assets/architecture.webp"><img src="assets/architecture.webp" alt="CoGA-GRPO training architecture. A rollout-based score, optionally mixed with input load, controls adaptive KL regularization and sequence length shaping."></a>
-        <figcaption>Both controllers use the same allocation score. The main configuration derives it solely from rollout correctness.</figcaption>
+      <div class="section-heading"><h2 id="method-title">How CoGA-GRPO works</h2><p>One correctness-derived signal coordinates two training decisions.</p></div>
+      <div class="reading-copy section-intro"><p>A fixed regularization weight treats every response group in the same way, even when the current policy succeeds much more often on some prompts than others. CoGA-GRPO recomputes an allocation score from each sampled group and uses it to adapt both regularization and eligibility for length shaping. The score reflects the policy’s observed performance on that prompt, which can change during training.</p></div>
+      <figure class="figure-frame workflow-figure">
+        <div class="workflow" aria-label="CoGA-GRPO training workflow">
+          <div class="workflow-start">
+            <article><h3>Structured-reasoning initialization</h3><p>Supervised fine-tuning teaches context description, reasoning, and final-answer generation.</p></article>
+            <span class="flow-arrow" aria-hidden="true">↓</span>
+            <article><h3>Prompt and video input</h3><p>The model receives the question and available media. The reference answer is reserved for scoring.</p></article>
+            <span class="flow-arrow" aria-hidden="true">↓</span>
+            <article><h3>Six sampled responses</h3><p>Answer and format scores provide the base training reward for each completion.</p></article>
+            <span class="flow-arrow" aria-hidden="true">↓</span>
+            <article class="workflow-shared"><h3>Shared allocation score</h3><p>Group correctness determines the main score. An optional variant adds input processing load.</p></article>
+          </div>
+          <div class="workflow-branches">
+            <article><h3>Adaptive KL regularization</h3><p>Groups with lower observed correctness receive weaker regularization toward the frozen reference policy.</p></article>
+            <article><h3>Correctness-gated length shaping</h3><p>A recent-score window determines eligible groups. Correct responses must also pass an answer-score margin.</p></article>
+          </div>
+          <span class="flow-arrow" aria-hidden="true">↓</span>
+          <article class="workflow-update"><h3>Group-relative policy update</h3><p>Combine the base and length rewards, center them within the group, and update the trainable adapters.</p></article>
+        </div>
+        <figcaption><h3>From sampled answers to a coordinated policy update</h3><p>The workflow begins with a Qwen2.5-Omni-7B structured-reasoning checkpoint. During group-relative training, the model generates six completions for the same prompt. Their answer scores determine correctness indicators, which are summarized into a group allocation score before length shaping is added. The same score then controls the KL penalty weight and the group’s eligibility for a length adjustment.</p><p>For eligible correct responses that pass the score margin, a completion shorter than its group mean receives a positive adjustment, while a longer completion receives a negative adjustment. The adjustment is bounded, and incorrect responses receive no direct length term in the main method. Group centering can still change their relative training signal when other responses receive an adjustment. The reference policy is evaluated with the trainable adapters disabled.</p></figcaption>
       </figure>
       <div class="method-grid">
-        <article><h3>Score the rollout group</h3><p>Sample six completions per prompt. Convert answer scores into correctness indicators and use their group mean <i>p</i> to compute the main allocation score.</p><p class="formula"><i>M</i><sub>q</sub> = 0.8(1 − <i>p</i><sub>q</sub><sup>2</sup>)</p></article>
-        <article><h3>Adapt the KL coefficient</h3><p>Groups with a larger allocation score receive a smaller KL penalty coefficient relative to the frozen reference policy.</p></article>
-        <article><h3>Shape eligible responses</h3><p>Within eligible groups, correct responses that pass the score margin receive a bounded adjustment based on length relative to the group mean.</p></article>
+        <article><h3>Two training stages</h3><p>Supervised fine-tuning establishes the structured response format. Group-relative optimization then adapts regularization and length rewards. Audio is included during supervised fine-tuning when an audio stream is present; video-derived audio is disabled in the reported second stage.</p></article>
+        <article><h3>Group-relative concision</h3><p>The reference length is the mean length of the six completions for the same prompt. This lets the incentive depend on the sampled responses for each question. Eligibility follows the recent allocation-score distribution through a rolling window.</p></article>
+        <article><h3>A controlled main comparison</h3><p>The main method uses rollout correctness alone. Input-load augmentation is a separate variant. Standard GRPO and CoGA-GRPO share the initialization, training budget, base rewards, and evaluation settings in the matched comparison.</p></article>
       </div>
     </section>
 
     <section class="results-band" id="results" aria-labelledby="results-title">
       <div class="section wrap">
-        <div class="section-heading"><h2 id="results-title">Results</h2></div>
+        <div class="section-heading"><h2 id="results-title">Results</h2><p>Accuracy, response length, and the effect of each controller.</p></div>
+        <div class="reading-copy section-intro"><p>The matched IntentBench evaluation covers all 2,689 questions from 633 videos, including intention, emotion, deception, and related human-centered reasoning tasks. Both methods use the same decoding protocol. The paper also reports full-set evaluation on Daily-Omni, with 1,197 audio-visual reasoning questions, and WorldSense, with 3,172 questions spanning eight video domains.</p><p>On IntentBench, CoGA-GRPO answers 28 more questions correctly than Standard GRPO while reducing mean generation length by 3.84 tokens, or approximately 0.85%. The additional benchmark scores extend the evaluation to audio-visual alignment and broader real-world video understanding.</p></div>
         <div class="results-summary">
           <div class="table-card">
             <h3>Matched IntentBench comparison</h3>
@@ -80,20 +99,31 @@
             <dl><div><dt>Daily-Omni</dt><dd>59.82%</dd></div><div><dt>WorldSense</dt><dd>47.9%</dd></div></dl>
           </div>
         </div>
+        <div class="reading-copy evaluation-copy"><h3>Evaluation protocol</h3><p>The paper uses four frames per video at a target of one frame per second across all three benchmarks. Evaluation uses greedy decoding, a shared context prefill, and a maximum of 1,024 newly generated tokens. Binary reference-answer agreement is the main outcome for the paired IntentBench comparison. Mean answer reward is reported separately because some answer types allow partial credit.</p></div>
         <div class="results-figures">
-          <details open><summary>Accuracy and generation-length trade-off</summary><figure><a href="assets/tradeoff.webp"><img src="assets/tradeoff.webp" alt="Scatter plot of accuracy change versus mean generated-token change for seven variants relative to Standard GRPO." loading="lazy"></a><figcaption>The upper-left quadrant indicates higher accuracy and fewer tokens relative to Standard GRPO.</figcaption></figure></details>
-          <details><summary>Changes by correctness transition</summary><figure><a href="assets/transitions.webp"><img src="assets/transitions.webp" alt="Stacked bars for shorter, unchanged and longer responses in four paired correctness groups." loading="lazy"></a><figcaption>Lengths are compared within each of the four correctness groups.</figcaption></figure></details>
-          <details><summary>Paired bootstrap estimates</summary><figure><a href="assets/paired-effects.webp"><img src="assets/paired-effects.webp" alt="Paired bootstrap estimates and confidence intervals for accuracy, mean reward, and generated-token differences." loading="lazy"></a><figcaption>Question-level estimates relative to Standard GRPO. Horizontal bars are 95% percentile confidence intervals.</figcaption></figure></details>
+          <article class="result-panel" aria-labelledby="transition-title">
+            <h3 id="transition-title">Where responses become shorter or longer</h3>
+            <figure><a href="assets/transitions.webp"><img src="assets/transitions.webp" alt="Shorter, unchanged, and longer responses in the both-correct, corrected, lost, and both-incorrect groups." loading="lazy"></a><figcaption><p>This figure groups the 2,689 paired questions by how correctness changes from Standard GRPO to CoGA-GRPO. Both models answer 1,709 questions correctly and 788 incorrectly. CoGA-GRPO corrects 110 questions missed by the baseline and loses 82 questions that the baseline answers correctly. Each horizontal bar shows the share of shorter, equal-length, and longer responses within that group.</p><p>Among corrected questions, 50.9% of responses are shorter and 45.5% are longer. Among lost questions, 58.5% are longer and 41.5% are shorter. These patterns show that a change in response length can accompany either outcome at the individual-question level. The overall reduction in mean length is an aggregate result across all four groups.</p></figcaption></figure>
+          </article>
+          <article class="result-panel" aria-labelledby="paired-title">
+            <h3 id="paired-title">Uncertainty in the matched comparison</h3>
+            <figure><a href="assets/paired-effects.webp"><img src="assets/paired-effects.webp" alt="Question-level paired bootstrap comparisons of accuracy, answer reward and generated-token count for four controller configurations." loading="lazy"></a><figcaption><p>The three panels compare accuracy, mean answer reward, and mean generated-token count with Standard GRPO. Points show mean paired differences; horizontal bars show 95% percentile confidence intervals from 30,000 question-level bootstrap draws. The vertical reference line marks no change. Accuracy differences are expressed in percentage points, and reward differences are scaled by 100.</p><p>The main configuration combines a positive accuracy difference with a negative length difference. Its question-level interval for mean length change runs from 7.72 fewer to 0.04 fewer tokens. The paper also resamples whole videos to account for multiple questions associated with the same clip. In that analysis, the main method’s accuracy interval runs from 0.04 to 2.05 percentage points, and its length interval runs from 7.59 fewer to 0.13 fewer tokens.</p></figcaption></figure>
+          </article>
+          <article class="result-panel" aria-labelledby="tradeoff-title">
+            <h3 id="tradeoff-title">How each component changes the trade-off</h3>
+            <figure><a href="assets/tradeoff.webp"><img src="assets/tradeoff.webp" alt="Seven configurations positioned by change in accuracy and mean generated-token count relative to Standard GRPO." loading="lazy"></a><figcaption><p>The horizontal axis measures the change in mean generated-token count relative to Standard GRPO, and the vertical axis measures the accuracy change in percentage points. The baseline is at the origin. A point in the upper-left region represents higher accuracy with shorter mean responses. Dynamic KL alone improves accuracy with longer outputs, while length shaping alone produces a smaller accuracy gain with a modest reduction in length. CoGA-GRPO combines both components and answers 28 more questions correctly with 3.84 fewer tokens per response.</p><p>Input-load augmentation produces the shortest mean outputs, at 447.82 tokens, but answers nine fewer questions correctly than the main configuration. Both stress tests use this augmented variant as their matched comparator. Rewarding longer incorrect responses in hard groups loses 36 correct answers and adds 6.18 tokens on average. Reversing KL allocation gains five correct answers but adds 5.59 tokens. These comparisons illustrate how the controller settings change the observed accuracy and length operating point.</p></figcaption></figure>
+          </article>
         </div>
       </div>
     </section>
 
     <section class="section wrap" id="example" aria-labelledby="example-title">
       <div class="section-heading"><h2 id="example-title">Qualitative example</h2><p>IntentBench · Emotion</p></div>
-      <div class="example-grid">
-        <figure class="figure-frame"><a href="assets/emotion-example.webp"><img src="assets/emotion-example.webp" alt="An IntentBench question about how two men react to a McMansion remark, with CoGA-GRPO selecting option A." loading="lazy"></a></figure>
-        <div class="example-copy"><h3>Interpreting a reaction</h3><p>CoGA-GRPO selects option A, matching the reference answer. Its explanation cites the man in glasses smiling and nodding, his appreciative tone, and the audience’s cheers and applause.</p><p>These cues more directly support the interpretation of the man in glasses than the emotional state of the other speaker, although the question asks about both men.</p></div>
-      </div>
+      <div class="reading-copy section-intro"><p>Emotion questions can require interpreting facial reactions, speech, and the surrounding social interaction together. This example examines how the model explains an answer to a question about two speakers reacting to a remark.</p></div>
+      <figure class="figure-frame emotion-figure">
+        <a href="assets/emotion-example.webp"><img src="assets/emotion-example.webp" alt="IntentBench Emotion question about a McMansion remark. CoGA-GRPO selects amusement and explains its use of smiles, speech and audience reactions." loading="lazy"></a>
+        <figcaption><h3>Interpreting a reaction in context</h3><p>After one speaker calls the place a “McMansion,” the question asks how the two men feel. CoGA-GRPO selects option A, amusement, matching the reference answer. The displayed explanation cites the man in glasses smiling and nodding, his appreciative reply, and the audience’s cheers and applause. It connects these observations to a positive response and uses the calm tone to assess the alternatives involving anger or exasperation.</p><p>The audience reaction adds context for interpreting the exchange as humorous. The explanation provides more direct support for the man in glasses’ reaction than for the other speaker’s emotional state, although the question asks about both men. The case shows how the generated explanation connects several reported cues to a benchmark answer.</p></figcaption>
+      </figure>
     </section>
   </main>
   <footer class="site-footer"><div class="wrap footer"><span>CoGA-GRPO</span><a href="https://github.com/mingzhi114514/CoGA-GRPO">Code and evaluation scripts ↗</a></div></footer>

@@ -76,7 +76,7 @@ figcaption { padding: .15rem .35rem; color: var(--muted); font-size: .91rem; mar
 .method-grid article { border: 1px solid var(--line); border-radius: 12px; padding: 1rem; background: var(--surface); }
 h3 { font: 800 1.03rem/1.35 var(--heading); }
 .method-grid p, .example-copy p { color: var(--muted); margin-top: .5rem; }
-.method-grid .formula { font: 1.1rem/1.5 Georgia, serif; color: var(--ink); }
+
 
 .results-summary { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
 .table-card, .external-results, details { border: 1px solid var(--line); background: var(--white); border-radius: 13px; padding: clamp(.75rem, 2vw, 1.25rem); }
@@ -113,4 +113,39 @@ details:first-child figure { max-width: 720px; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .button { transition: none; }
+}
+
+/* Long-form explanations accompanying the current manuscript figures. */
+.teaser { width: min(960px, calc(100% - 48px)); }
+.teaser figcaption { text-align: left; max-width: 80ch; margin-top: 1.5rem; }
+figcaption h2 { font: 800 clamp(1.35rem, 3vw, 1.85rem)/1.25 var(--heading); letter-spacing: -.03em; color: var(--ink); margin-bottom: .7rem; }
+figcaption h3 { color: var(--ink); margin-bottom: .6rem; }
+figcaption p + p { margin-top: .85rem; }
+.reading-copy { max-width: 80ch; margin-inline: auto; color: var(--muted); }
+.reading-copy p + p { margin-top: .9rem; }
+.section-intro { margin-bottom: 1.75rem; }
+.evaluation-copy { margin-top: 1.75rem; margin-bottom: 2rem; }
+.evaluation-copy h3 { color: var(--ink); margin-bottom: .6rem; }
+.result-panel { padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); background: var(--white); border-radius: 15px; }
+.result-panel > h3 { font-size: clamp(1.15rem, 2.8vw, 1.55rem); text-align: center; margin-bottom: 1.4rem; }
+.result-panel figure { margin: 0; max-width: none; }
+.result-panel img { max-width: 880px; margin-inline: auto; }
+.result-panel:first-child img { max-width: 760px; }
+.result-panel:last-child img { max-width: 760px; }
+.result-panel figcaption { max-width: 80ch; margin: 1.4rem auto 0; font-size: .98rem; }
+.results-figures { gap: 1.6rem; }
+.workflow-figure figcaption { max-width: 80ch; margin: 1.6rem auto .5rem; font-size: .98rem; }
+.workflow { padding: clamp(.6rem, 2vw, 1.5rem); }
+.workflow-start { max-width: 640px; margin-inline: auto; }
+.workflow article { padding: .9rem 1.1rem; border: 1px solid var(--line); border-radius: 10px; text-align: center; background: var(--surface); }
+.workflow article p { color: var(--muted); font-size: .93rem; margin-top: .35rem; }
+.workflow .workflow-shared { background: #eaf2ff; border-color: #c8d9f6; }
+.flow-arrow { display: block; text-align: center; font-size: 1.5rem; color: var(--blue); line-height: 1.6; }
+.workflow-branches { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; margin-top: 1.2rem; border-top: 2px solid #bdcfe8; padding-top: 1.2rem; }
+.workflow-update { max-width: 640px; margin-inline: auto; }
+.emotion-figure > a { display: block; max-width: 760px; margin-inline: auto; }
+.emotion-figure figcaption { max-width: 80ch; margin: 1.5rem auto .7rem; font-size: .98rem; }
+@media (max-width: 720px) {
+  .teaser { width: calc(100% - 32px); }
+  .workflow-branches { grid-template-columns: minmax(0,1fr); }
 }
